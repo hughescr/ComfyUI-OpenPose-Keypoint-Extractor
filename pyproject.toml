@@ -2,7 +2,7 @@
 name = "comfyui-openpose-keypoint-extractor"
 description = "This is a single node which can take the POSE_KEYPOINT output from the OpenPose extractor node, parse it, and return x,y,width,height bounding boxes around any elements of the OpenPose skeleton"
 version = "1.0.0"
-license = "LICENSE"
+license = { file = "LICENSE" }
 
 [project.urls]
 Repository = "https://github.com/hughescr/ComfyUI-OpenPose-Keypoint-Extractor"
