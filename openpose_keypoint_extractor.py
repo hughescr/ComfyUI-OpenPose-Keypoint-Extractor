@@ -1,4 +1,3 @@
-import json
 from nodes import MAX_RESOLUTION
 
 class OpenPoseKeyPointExtractor:
@@ -10,6 +9,7 @@ class OpenPoseKeyPointExtractor:
                 "image_width": ("INT", { "min": 0, "max": MAX_RESOLUTION }),
                 "image_height": ("INT", { "min": 0, "max": MAX_RESOLUTION }),
                 "points_list": ("STRING", {"multiline": True, "default": ""}),
+                "min_confidence": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
             },
             "optional": {
                 "person_number": ("INT", { "default": 0 }),
@@ -25,25 +25,38 @@ class OpenPoseKeyPointExtractor:
         idx_x = item*3
         idx_y = idx_x + 1
         idx_conf = idx_y + 1
+        # prevent out of bounds errors
+        if idx_conf >= len(list):
+            return (0.0, 0.0, 0.0)
         return (list[idx_x], list[idx_y], list[idx_conf])
 
-    def box_keypoints(self, pose_keypoint, image_width, image_height, points_list, person_number=0):
+    def box_keypoints(self, pose_keypoint, image_width, image_height, points_list,
+                      person_number=0, min_confidence=0.5):
         points_we_want = [int(element) for element in points_list.split(",")]
 
         min_x = MAX_RESOLUTION
         min_y = MAX_RESOLUTION
         max_x = 0
         max_y = 0
+
         for element in points_we_want:
             (x,y,z) = self.get_keypoint_from_list(pose_keypoint[0]["people"][person_number]["pose_keypoints_2d"], element)
-            if x < min_x:
-                min_x = x
-            if y < min_y:
-                min_y = y
-            if x > max_x:
-                max_x = x
-            if y > max_y:
-                max_y = y
+
+            # only include points that meet the minimum confidence
+            if z >= min_confidence:
+                if x < min_x:
+                    min_x = x
+                if y < min_y:
+                    min_y = y
+                if x > max_x:
+                    max_x = x
+                if y > max_y:
+                    max_y = y
+
+        # in case no valid keypoints were found return the full image
+        if min_x == MAX_RESOLUTION:
+            return (0, 0, image_width, image_height)
+
         return (int(min_x*image_width), int(min_y*image_height), int((max_x-min_x)*image_width), int((max_y-min_y)*image_height))
 
 NODE_CLASS_MAPPINGS = {
